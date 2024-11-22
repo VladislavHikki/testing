@@ -28,13 +28,13 @@ test.describe('Login Form', () => {
   });
 
   test('should navigate to profile page on successful login', async ({ page }) => {
-    await page.fill('#email', 'vlad19022005@mail.ru');
+    await page.fill('#email', 'te@mail.ru');
     await page.fill('input[type=password]', '1');
 
     page.route(`${url}/api/users/auth`, (route) =>
       route.fulfill({
         status: 200,
-        body: JSON.stringify({ email: 'vlad19022005@mail.ru', password: '1', rememberMe: false }),
+        body: JSON.stringify({ email: 'te@mail.ru', password: '1', rememberMe: false }),
       })
     );
 

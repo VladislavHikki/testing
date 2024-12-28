@@ -1,50 +1,100 @@
-use axum::{routing::get, Router};
-use chrono::NaiveDateTime;
-use serde::Serialize;
-use sqlx::{mysql::MySqlPool, FromRow};
-use std::env;
-mod model;
-use model::task::Task;
-
-async fn get_tasks() -> String {
-    "Hello World222122".to_string()
+pub struct ToDoList {
+    tasks: Vec<String>,
 }
 
-async fn add_task() -> String {
-    "Add task".to_string()
+impl ToDoList {
+    pub fn new() -> Self {
+        ToDoList { tasks: Vec::new() }
+    }
+
+    pub fn add_task(&mut self, task: String) {
+        self.tasks.push(task);
+    }
+
+    pub fn remove_task(&mut self, index: usize) -> Option<String> {
+        if index < self.tasks.len() {
+            Some(self.tasks.remove(index))
+        } else {
+            None
+        }
+    }
+
+    pub fn edit_task(&mut self, index: usize, new_task: String) -> Result<(), &'static str> {
+        if index < self.tasks.len() {
+            self.tasks[index] = new_task;
+            Ok(())
+        } else {
+            Err("Index out of bounds")
+        }
+    }
+
+    pub fn get_tasks(&self) -> &Vec<String> {
+        &self.tasks
+    }
 }
 
-async fn edit_task() -> String {
-    "Edit task".to_string()
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_new_todo_list() {
+        let todo_list = ToDoList::new();
+        assert_eq!(todo_list.get_tasks().len(), 0);
+    }
+
+    #[test]
+    fn test_add_task() {
+        let mut todo_list = ToDoList::new();
+        todo_list.add_task("Тест".to_string());
+        assert_eq!(todo_list.get_tasks().len(), 1);
+        assert_eq!(todo_list.get_tasks()[0], "Тест");
+    }
+
+    #[test]
+    fn test_remove_task() {
+        let mut todo_list = ToDoList::new();
+        todo_list.add_task("Тест".to_string());
+        todo_list.add_task("Тест2".to_string());
+
+        let removed_task = todo_list.remove_task(0);
+        assert_eq!(removed_task, Some("Тест".to_string()));
+        assert_eq!(todo_list.get_tasks().len(), 1);
+        assert_eq!(todo_list.get_tasks()[0], "Тест2");
+    }
+
+    #[test]
+    fn test_remove_task_out_of_bounds() {
+        let mut todo_list = ToDoList::new();
+        todo_list.add_task("Тест".to_string());
+
+        let removed_task = todo_list.remove_task(1);
+        assert_eq!(removed_task, None);
+        assert_eq!(todo_list.get_tasks().len(), 1);
+        assert_eq!(todo_list.get_tasks()[0], "Тест");
+    }
+
+    #[test]
+    fn test_edit_task() {
+        let mut todo_list = ToDoList::new();
+        todo_list.add_task("Тест".to_string());
+        todo_list.add_task("Тест2".to_string());
+
+        let result = todo_list.edit_task(1, "Тест3".to_string());
+        assert!(result.is_ok());
+        assert_eq!(todo_list.get_tasks()[1], "Тест3");
+    }
+
+    #[test]
+    fn test_edit_task_out_of_bounds() {
+        let mut todo_list = ToDoList::new();
+        todo_list.add_task("Тест".to_string());
+
+        let result = todo_list.edit_task(1, "Тест3".to_string());
+        assert!(result.is_err());
+        assert_eq!(todo_list.get_tasks().len(), 1);
+        assert_eq!(todo_list.get_tasks()[0], "Тест");
+    }
 }
 
-async fn del_task() -> String {
-    "Delete task".to_string()
-}
-
-async fn change_example() -> String {
-    "Change Example".to_string()
-}
-
-#[tokio::main]
-async fn main() {
-    dotenvy::dotenv().ok();
-
-    let database_url = env::var("DATABASE_URL").expect("DATABASE_URL is not defined");
-
-    let pool = MySqlPool::connect(&database_url)
-        .await
-        .expect("Failed to connect to the db");
-
-    let app = Router::new()
-        .route("/tasks", get(|| async { get_tasks().await }))
-        .route("/add/task", get(|| async { add_task().await }))
-        .route("/edit/task", get(|| async { edit_task().await }))
-        .route("/del/task", get(|| async { del_task().await }))
-        .route("/change-example", get(|| async { change_example().await }))
-        .with_state(pool);
-
-    // run our app with hyper, listening globally on port 3000
-    let listener = tokio::net::TcpListener::bind("0.0.0.0:3001").await.unwrap();
-    axum::serve(listener, app).await.unwrap();
-}
+fn main() {}
